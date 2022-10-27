@@ -13,11 +13,13 @@ func LoginHost(c echo.Context) error {
 	if auth == nil {
 		return c.JSON(401, "missing basic auth")
 	}
+	expired := time.Now().Add(120 * time.Hour).Format(time.RFC3339)
+	expired = strings.Join(strings.Split(expired, "T"), " ")
 	return c.JSON(200, map[string]interface{}{
 		"users": []map[string]string{
 			{
 				"token": "eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VyIjoiT0NBXzFfd2EiLCJpYXQiOjE2NjUzNjk2NDksImV4cCI6MTY2NTk3NDQ0OSwid2E6cmFuZCI6IjA0YmVkNzc4NjVjYTlhOWU3Y2E2NGNiMzcwNGM1ZTc3In0.NgFf8Vg-PitIY_9lfWzFuUCwS15x4aZzfaQ257IOy80",
-				"expires_after": time.Now().Add(120 * time.Hour).Format(time.RFC3339),
+				"expires_after": expired,
 			},
 		},
 		"meta": map[string]string{
