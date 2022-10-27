@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -47,18 +48,13 @@ func Contact(c echo.Context) error {
 	}
 	var request ContactRequest
 	err := c.Bind(&request)
+	fmt.Println(request)
 	if err != nil {
 		return c.JSON(500, "error parsing request body")
 	}
 
 	return c.JSON(200, map[string]interface{}{
-		"contacts": []map[string]string{
-			{
-				"wa_id": "6282213604539",
-				"input": request.Contacts[0],
-				"status": "valid",
-			  },
-		},
+		"contacts": request.ToResponse(),
 		"meta": map[string]string{
 			"api_status": "stable",
 			"version": "v2.41.2",
@@ -82,4 +78,35 @@ type ContactRequest struct {
 	Blocking string `json:"blocking"`
 	Contacts []string `json:"contacts"`
 	ForceCheck bool `json:"force_check"`
+}
+
+func (cr *ContactRequest) ToResponse() (contactResponse []ContactResponse) {
+	for _, contact := range cr.Contacts {
+		if len(contact) < 3 {
+			continue
+		}
+		contactResponse = append(contactResponse, ContactResponse{
+			WAID: cr.Normalize(contact),
+			Input: contact,
+			Status: "valid",
+		})
+	}
+	return 
+}
+
+func (cr *ContactRequest) Normalize(input string) string {
+	if input[:3] == "+62" {
+		return input[1:]
+	} else if string(input[0]) == "0" {
+		return "62" + input[1:]
+	} else if string(input[0]) == "8" {
+		return "62" + input
+	}
+	return input
+}
+
+type ContactResponse struct {
+	WAID string `json:"wa_id"`
+	Input string `json:"input"`
+	Status string `json:"status"`
 }
