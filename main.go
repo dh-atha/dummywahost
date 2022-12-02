@@ -18,16 +18,42 @@ func LoginHost(c echo.Context) error {
 	return c.JSON(200, map[string]interface{}{
 		"users": []map[string]string{
 			{
-				"token": "eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VyIjoiT0NBXzFfd2EiLCJpYXQiOjE2NjUzNjk2NDksImV4cCI6MTY2NTk3NDQ0OSwid2E6cmFuZCI6IjA0YmVkNzc4NjVjYTlhOWU3Y2E2NGNiMzcwNGM1ZTc3In0.NgFf8Vg-PitIY_9lfWzFuUCwS15x4aZzfaQ257IOy80",
+				"token":         "eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VyIjoiT0NBXzFfd2EiLCJpYXQiOjE2NjUzNjk2NDksImV4cCI6MTY2NTk3NDQ0OSwid2E6cmFuZCI6IjA0YmVkNzc4NjVjYTlhOWU3Y2E2NGNiMzcwNGM1ZTc3In0.NgFf8Vg-PitIY_9lfWzFuUCwS15x4aZzfaQ257IOy80",
 				"expires_after": expired,
 			},
 		},
 		"meta": map[string]string{
-			"version": "v2.41.2",
+			"version":    "v2.41.2",
 			"api_status": "stable",
 		},
 	})
-} 
+}
+
+func LoginBRIHost(c echo.Context) error {
+	username, password, ok := c.Request().BasicAuth()
+	if !ok {
+		return c.JSON(401, "error getting basic auth header")
+	}
+
+	if username != "admin" || password != "Jatis865*" {
+		return c.JSON(401, "invalid credential")
+	}
+
+	expired := time.Now().Add(120 * time.Hour).Format(time.RFC3339)
+	expired = strings.Join(strings.Split(expired, "T"), " ")
+	return c.JSON(200, map[string]interface{}{
+		"users": []map[string]string{
+			{
+				"token":         "eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VyIjoiT0NBXzFfd2EiLCJpYXQiOjE2NjUzNjk2NDksImV4cCI6MTY2NTk3NDQ0OSwid2E6cmFuZCI6IjA0YmVkNzc4NjVjYTlhOWU3Y2E2NGNiMzcwNGM1ZTc3In0.NgFf8Vg-PitIY_9lfWzFuUCwS15x4aZzfaQ257IOy80",
+				"expires_after": expired,
+			},
+		},
+		"meta": map[string]string{
+			"version":    "v2.41.2",
+			"api_status": "stable",
+		},
+	})
+}
 
 func Message(c echo.Context) error {
 	auth := c.Request().Header["Authorization"]
@@ -40,7 +66,7 @@ func Message(c echo.Context) error {
 		},
 		"meta": map[string]string{
 			"api_status": "stable",
-			"version": "v2.41.2",
+			"version":    "v2.41.2",
 		},
 	})
 }
@@ -60,7 +86,7 @@ func Contact(c echo.Context) error {
 		"contacts": request.ToResponse(),
 		"meta": map[string]string{
 			"api_status": "stable",
-			"version": "v2.41.2",
+			"version":    "v2.41.2",
 		},
 	})
 }
@@ -70,7 +96,8 @@ func main() {
 	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(middleware.Logger())
 
-	e.POST("/v1/users/login", LoginHost)
+	// e.POST("/v1/users/login", LoginHost)
+	e.POST("/v1/users/login", LoginBRIHost)
 	e.POST("/v1/messages", Message)
 	e.POST("/v1/contacts", Contact)
 
@@ -78,9 +105,9 @@ func main() {
 }
 
 type ContactRequest struct {
-	Blocking string `json:"blocking"`
-	Contacts []string `json:"contacts"`
-	ForceCheck bool `json:"force_check"`
+	Blocking   string   `json:"blocking"`
+	Contacts   []string `json:"contacts"`
+	ForceCheck bool     `json:"force_check"`
 }
 
 func (cr *ContactRequest) ToResponse() (contactResponse []ContactResponse) {
@@ -89,12 +116,12 @@ func (cr *ContactRequest) ToResponse() (contactResponse []ContactResponse) {
 			continue
 		}
 		contactResponse = append(contactResponse, ContactResponse{
-			WAID: cr.Normalize(contact),
-			Input: contact,
+			WAID:   cr.Normalize(contact),
+			Input:  contact,
 			Status: "valid",
 		})
 	}
-	return 
+	return
 }
 
 func (cr *ContactRequest) Normalize(input string) string {
@@ -109,7 +136,7 @@ func (cr *ContactRequest) Normalize(input string) string {
 }
 
 type ContactResponse struct {
-	WAID string `json:"wa_id"`
-	Input string `json:"input"`
+	WAID   string `json:"wa_id"`
+	Input  string `json:"input"`
 	Status string `json:"status"`
 }
