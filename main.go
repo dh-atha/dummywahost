@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -64,6 +67,27 @@ func Message(c echo.Context) error {
 		"messages": []map[string]string{
 			{"id": "gBGGFlBxZ0M_AgkSjW7mD4HxMUw"},
 		},
+		"errors": []map[string]interface{}{},
+		"meta": map[string]string{
+			"api_status": "stable",
+			"version":    "v2.41.2",
+		},
+	})
+}
+
+func MessageError(c echo.Context) error {
+	auth := c.Request().Header["Authorization"]
+	if auth == nil || strings.ToUpper(strings.Split(auth[0], " ")[0]) != "BEARER" {
+		return c.JSON(401, "missing bearer auth")
+	}
+	return c.JSON(200, map[string]interface{}{
+		"errors": []map[string]interface{}{
+			{
+				"code":   1000,
+				"title":  "error send message",
+				"detail": "message error",
+			},
+		},
 		"meta": map[string]string{
 			"api_status": "stable",
 			"version":    "v2.41.2",
@@ -88,18 +112,70 @@ func Contact(c echo.Context) error {
 			"api_status": "stable",
 			"version":    "v2.41.2",
 		},
+		"errors": []map[string]interface{}{},
 	})
+}
+
+func ContactError(c echo.Context) error {
+	auth := c.Request().Header["Authorization"]
+	if auth == nil || strings.ToUpper(strings.Split(auth[0], " ")[0]) != "BEARER" {
+		return c.JSON(401, "missing bearer auth")
+	}
+	var request ContactRequest
+	err := c.Bind(&request)
+	if err != nil {
+		return c.JSON(500, "error parsing request body")
+	}
+
+	return c.JSON(200, map[string]interface{}{
+		"contacts": request.ToResponse(),
+		"meta": map[string]string{
+			"api_status": "stable",
+			"version":    "v2.41.2",
+		},
+		"errors": []map[string]interface{}{
+			{
+				"code":   1000,
+				"title":  "error check contact",
+				"detail": "contact error",
+			},
+		},
+	})
+}
+
+var i int
+var start time.Time
+var lock sync.Mutex
+
+func Counter() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if start.Equal(time.Time{}) {
+				start = time.Now()
+			}
+			lock.Lock()
+			i++
+			lock.Unlock()
+			if i == 50 {
+				log.Println(i)
+				fmt.Println(time.Since(start))
+			}
+			return nil
+		}
+	}
 }
 
 func main() {
 	e := echo.New()
 	e.Pre(middleware.RemoveTrailingSlash())
-	e.Use(middleware.Logger())
+	// e.Use(middleware.Logger())
 
 	// e.POST("/v1/users/login", LoginHost)
 	e.POST("/v1/users/login", LoginBRIHost)
-	e.POST("/v1/messages", Message)
+	e.POST("/v1/messages", Message, Counter())
 	e.POST("/v1/contacts", Contact)
+	// e.POST("/v1/contacts", ContactError)
+	// e.POST("/v1/messages", MessageError)
 
 	e.Logger.Fatal(e.Start(":3000"))
 }
