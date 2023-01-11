@@ -58,7 +58,7 @@ func LoginBRIHost(c echo.Context) error {
 	})
 }
 
-func Message(c echo.Context) error {
+func MessageSuccess(c echo.Context) error {
 	auth := c.Request().Header["Authorization"]
 	if auth == nil || strings.ToUpper(strings.Split(auth[0], " ")[0]) != "BEARER" {
 		return c.JSON(401, "missing bearer auth")
@@ -67,7 +67,6 @@ func Message(c echo.Context) error {
 		"messages": []map[string]string{
 			{"id": "gBGGFlBxZ0M_AgkSjW7mD4HxMUw"},
 		},
-		"errors": []map[string]interface{}{},
 		"meta": map[string]string{
 			"api_status": "stable",
 			"version":    "v2.41.2",
@@ -150,17 +149,17 @@ var lock sync.Mutex
 func Counter() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			lock.Lock()
 			if start.Equal(time.Time{}) {
 				start = time.Now()
 			}
-			lock.Lock()
 			i++
 			lock.Unlock()
-			if i == 50 {
+			if i == 150 {
 				log.Println(i)
 				fmt.Println(time.Since(start))
 			}
-			return nil
+			return next(c)
 		}
 	}
 }
@@ -172,9 +171,9 @@ func main() {
 
 	// e.POST("/v1/users/login", LoginHost)
 	e.POST("/v1/users/login", LoginBRIHost)
-	e.POST("/v1/messages", Message, Counter())
+	// e.POST("/v1/messages", Message, Counter())
+	e.POST("/v1/messages", MessageSuccess, Counter())
 	e.POST("/v1/contacts", Contact)
-	// e.POST("/v1/contacts", ContactError)
 	// e.POST("/v1/messages", MessageError)
 
 	e.Logger.Fatal(e.Start(":3000"))
